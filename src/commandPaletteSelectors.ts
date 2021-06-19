@@ -14,6 +14,10 @@ export const getServiceIdsIAmSubscribedTo = (state: CommandPaletteState) => {
   return Object.keys(state.context.servicesConsoleLogging);
 };
 
+export const getCommandPaletteSearchValue = (state: CommandPaletteState) => {
+  return state.context.commandPaletteSearchValue;
+};
+
 interface Command {
   name: string;
   event: CommandPaletteEvent;

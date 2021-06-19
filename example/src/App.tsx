@@ -3,7 +3,7 @@ import React from 'react';
 import { createMachine } from 'xstate';
 import { initCommandPalette } from '../../src';
 
-const machine = createMachine({
+export const machine = createMachine({
   initial: 'toggledOn',
   id: 'toggleMachine',
   states: {

@@ -18,6 +18,7 @@ export interface CommandPaletteContext {
       label: string;
     }
   >;
+  commandPaletteSearchValue: string;
 }
 
 export type CommandPaletteEvent =
@@ -53,17 +54,22 @@ export type CommandPaletteEvent =
   | {
       type: 'UNREGISTER_SERVICE_FROM_CONSOLE_LOG_UPDATES';
       serviceId: string;
+    }
+  | {
+      type: 'CHANGE_COMMAND_PALETTE_FILTER';
+      newFilter: string;
     };
 
 export const commandPaletteMachine = createMachine<
   CommandPaletteContext,
   CommandPaletteEvent
 >({
-  initial: 'closed',
+  initial: 'open',
   context: {
     services: {},
     states: {},
     servicesConsoleLogging: {},
+    commandPaletteSearchValue: '',
   },
   on: {
     SERVICE_REGISTERED: {
@@ -190,6 +196,13 @@ export const commandPaletteMachine = createMachine<
     },
     open: {
       on: {
+        CHANGE_COMMAND_PALETTE_FILTER: {
+          actions: assign((_, event) => {
+            return {
+              commandPaletteSearchValue: event.newFilter,
+            };
+          }),
+        },
         CMD_K_PRESSED: {
           target: 'closed',
         },
