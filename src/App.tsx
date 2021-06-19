@@ -3,16 +3,16 @@ import { useInterpret, useSelector } from '@xstate/react';
 import React from 'react';
 import { commandPaletteMachine } from './commandPaletteMachine';
 import {
-  getAvailableCommands,
   getCommandPaletteSearchValue,
   getIsModalOpen,
+  getSearchedForCommands,
 } from './commandPaletteSelectors';
 
 export const App = () => {
   const service = useInterpret(commandPaletteMachine);
   const isOpen = useSelector(service, getIsModalOpen);
 
-  const availableCommands = useSelector(service, getAvailableCommands);
+  const availableCommands = useSelector(service, getSearchedForCommands);
   const commandPaletteSearchValue = useSelector(
     service,
     getCommandPaletteSearchValue
@@ -92,6 +92,7 @@ export const Modal = () => {};
 
 const ModalBackdrop = styled.div`
   background-color: var(--gray-50);
+  width: 400px;
 `;
 
 const Overlay = styled.div`

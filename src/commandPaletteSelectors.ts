@@ -1,8 +1,9 @@
 import {
   CommandPaletteEvent,
   commandPaletteMachine,
-} from 'commandPaletteMachine';
+} from './commandPaletteMachine';
 import { StateFrom } from 'xstate';
+import Fuse from 'fuse.js';
 
 type CommandPaletteState = StateFrom<typeof commandPaletteMachine>;
 
@@ -80,4 +81,21 @@ export const getAvailableCommands = (state: CommandPaletteState): Command[] => {
   });
 
   return eventSenders.concat(consoleLogs);
+};
+
+export const getSearchedForCommands = (
+  state: CommandPaletteState
+): Command[] => {
+  const availableCommands = getAvailableCommands(state);
+  if (!state.context.commandPaletteSearchValue) {
+    return availableCommands;
+  }
+
+  const fuse = new Fuse(availableCommands, {
+    keys: ['name'],
+  });
+
+  const result = fuse.search(state.context.commandPaletteSearchValue);
+
+  return result.map(res => res.item);
 };

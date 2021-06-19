@@ -23,6 +23,7 @@ export interface CommandPaletteContext {
 
 export type CommandPaletteEvent =
   | { type: 'CMD_K_PRESSED' }
+  | { type: 'ESC_PRESSED' }
   | {
       type: 'SERVICE_REGISTERED';
       service: Interpreter<any>;
@@ -64,7 +65,7 @@ export const commandPaletteMachine = createMachine<
   CommandPaletteContext,
   CommandPaletteEvent
 >({
-  initial: 'open',
+  initial: 'closed',
   context: {
     services: {},
     states: {},
@@ -122,6 +123,9 @@ export const commandPaletteMachine = createMachine<
             e.preventDefault();
 
             send('CMD_K_PRESSED');
+          }
+          if (e.key === 'Escape') {
+            send('ESC_PRESSED');
           }
         };
 
@@ -196,6 +200,9 @@ export const commandPaletteMachine = createMachine<
     },
     open: {
       on: {
+        ESC_PRESSED: {
+          target: 'closed',
+        },
         CHANGE_COMMAND_PALETTE_FILTER: {
           actions: assign((_, event) => {
             return {
