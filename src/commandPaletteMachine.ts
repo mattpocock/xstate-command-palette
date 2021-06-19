@@ -1,10 +1,23 @@
 import produce from 'immer';
-import { assign, createMachine, EventObject, Interpreter, State } from 'xstate';
+import {
+  assign,
+  createMachine,
+  EventObject,
+  Interpreter,
+  send,
+  State,
+} from 'xstate';
 import { XStateDevInterface, getGlobal } from 'xstate/lib/devTools';
 
 export interface CommandPaletteContext {
   services: Record<string, Interpreter<any>>;
   states: Record<string, State<any, any>>;
+  servicesConsoleLogging: Record<
+    string,
+    {
+      label: string;
+    }
+  >;
 }
 
 export type CommandPaletteEvent =
@@ -31,6 +44,15 @@ export type CommandPaletteEvent =
       type: 'CONSOLE_LOG_SERVICE';
       serviceId: string;
       label: string;
+    }
+  | {
+      type: 'REGISTER_SERVICE_TO_CONSOLE_LOG_UPDATES';
+      serviceId: string;
+      label: string;
+    }
+  | {
+      type: 'UNREGISTER_SERVICE_FROM_CONSOLE_LOG_UPDATES';
+      serviceId: string;
     };
 
 export const commandPaletteMachine = createMachine<
@@ -41,6 +63,7 @@ export const commandPaletteMachine = createMachine<
   context: {
     services: {},
     states: {},
+    servicesConsoleLogging: {},
   },
   on: {
     SERVICE_REGISTERED: {
@@ -51,6 +74,11 @@ export const commandPaletteMachine = createMachine<
           }),
       }),
     },
+    CONSOLE_LOG_SERVICE: {
+      actions: (context, event) => {
+        consoleLogState(context.states[event.serviceId], event.label);
+      },
+    },
     SERVICE_UNREGISTERED: {
       actions: assign((context, event) => {
         return produce(context, draft => {
@@ -60,13 +88,24 @@ export const commandPaletteMachine = createMachine<
       }),
     },
     STATE_CHANGED: {
-      actions: assign({
-        states: (context, event) => {
-          return produce(context.states, draft => {
-            draft[event.service.sessionId] = event.state;
-          });
+      actions: [
+        assign({
+          states: (context, event) => {
+            return produce(context.states, draft => {
+              draft[event.service.sessionId] = event.state;
+            });
+          },
+        }),
+        context => {
+          // Look at all the servicesConsoleLogging in context
+          // console.log each of them
+          Object.entries(context.servicesConsoleLogging).forEach(
+            ([serviceId, { label }]) => {
+              consoleLogState(context.states[serviceId], label);
+            }
+          );
         },
-      }),
+      ],
     },
   },
   invoke: [
@@ -159,15 +198,56 @@ export const commandPaletteMachine = createMachine<
             context.services[event.serviceId]?.send(event.event);
           },
         },
-        CONSOLE_LOG_SERVICE: {
-          actions: (context, event) => {
-            console.group(event.label);
-            console.log(`value`, context.states[event.serviceId].value);
-            console.log(`context`, context.states[event.serviceId].context);
-            console.groupEnd();
-          },
+        REGISTER_SERVICE_TO_CONSOLE_LOG_UPDATES: {
+          actions: [
+            assign({
+              servicesConsoleLogging: (context, event) =>
+                produce(context.servicesConsoleLogging, draft => {
+                  draft[event.serviceId] = {
+                    label: event.label,
+                  };
+                }),
+            }),
+            () => {
+              console.log(`Subscribed!`);
+            },
+            send<
+              CommandPaletteContext,
+              Extract<
+                CommandPaletteEvent,
+                { type: 'REGISTER_SERVICE_TO_CONSOLE_LOG_UPDATES' }
+              >,
+              CommandPaletteEvent
+            >((_, event) => {
+              return {
+                type: 'CONSOLE_LOG_SERVICE',
+                label: event.label,
+                serviceId: event.serviceId,
+              };
+            }),
+          ],
+        },
+        UNREGISTER_SERVICE_FROM_CONSOLE_LOG_UPDATES: {
+          actions: [
+            () => {
+              console.log(`Unsubscribed!`);
+            },
+            assign({
+              servicesConsoleLogging: (context, event) =>
+                produce(context.servicesConsoleLogging, draft => {
+                  delete draft[event.serviceId];
+                }),
+            }),
+          ],
         },
       },
     },
   },
 });
+
+const consoleLogState = (state: State<any, any>, label: string) => {
+  console.group(label);
+  console.log(`value`, state.value);
+  console.log(`context`, state.context);
+  console.groupEnd();
+};

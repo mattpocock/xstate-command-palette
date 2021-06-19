@@ -10,6 +10,10 @@ export const getIsModalOpen = (state: CommandPaletteState) => {
   return state.matches('open');
 };
 
+export const getServiceIdsIAmSubscribedTo = (state: CommandPaletteState) => {
+  return Object.keys(state.context.servicesConsoleLogging);
+};
+
 interface Command {
   name: string;
   event: CommandPaletteEvent;
@@ -17,6 +21,7 @@ interface Command {
 
 export const getAvailableCommands = (state: CommandPaletteState): Command[] => {
   const latestStateShapes = Object.entries(state.context.states);
+  const serviceIdsSubscribedToConsoleLogs = getServiceIdsIAmSubscribedTo(state);
 
   const eventSenders: Command[] = latestStateShapes.flatMap(
     ([serviceId, stateShape]) => {
@@ -35,15 +40,39 @@ export const getAvailableCommands = (state: CommandPaletteState): Command[] => {
     }
   );
 
-  const consoleLogs: Command[] = latestStateShapes.map(([serviceId]) => {
-    return {
-      name: `console.log ${state.context.services[serviceId].id} state`,
-      event: {
-        type: 'CONSOLE_LOG_SERVICE',
-        serviceId,
-        label: `${state.context.services[serviceId].id} state`,
+  const consoleLogs: Command[] = latestStateShapes.flatMap(([serviceId]) => {
+    const machineId = state.context.services[serviceId].id;
+    const commands: Command[] = [
+      {
+        name: `console.log ${machineId} state`,
+        event: {
+          type: 'CONSOLE_LOG_SERVICE',
+          serviceId,
+          label: `${machineId} state`,
+        },
       },
-    };
+    ];
+
+    if (serviceIdsSubscribedToConsoleLogs.includes(serviceId)) {
+      commands.push({
+        name: `Unsubscribe from ${machineId} state updates`,
+        event: {
+          type: 'UNREGISTER_SERVICE_FROM_CONSOLE_LOG_UPDATES',
+          serviceId,
+        },
+      });
+    } else {
+      commands.push({
+        name: `Subscribe to ${machineId} state updates`,
+        event: {
+          type: 'REGISTER_SERVICE_TO_CONSOLE_LOG_UPDATES',
+          serviceId,
+          label: `${machineId} state`,
+        },
+      });
+    }
+
+    return commands;
   });
 
   return eventSenders.concat(consoleLogs);
