@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { render } from 'react-dom';
+import { App } from './App';
 
 export const initCommandPalette = (params?: {
   getRootElement?: () => HTMLElement;
@@ -23,8 +24,4 @@ export const initCommandPalette = (params?: {
   }
 
   render(<App></App>, element);
-};
-
-const App = () => {
-  return <>Amazing, cool</>;
 };
