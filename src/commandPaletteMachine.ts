@@ -26,6 +26,11 @@ export type CommandPaletteEvent =
       type: 'SEND_EVENT_TO_SERVICE';
       serviceId: string;
       event: EventObject;
+    }
+  | {
+      type: 'CONSOLE_LOG_SERVICE';
+      serviceId: string;
+      label: string;
     };
 
 export const commandPaletteMachine = createMachine<
@@ -152,6 +157,14 @@ export const commandPaletteMachine = createMachine<
         SEND_EVENT_TO_SERVICE: {
           actions: (context, event) => {
             context.services[event.serviceId]?.send(event.event);
+          },
+        },
+        CONSOLE_LOG_SERVICE: {
+          actions: (context, event) => {
+            console.group(event.label);
+            console.log(`value`, context.states[event.serviceId].value);
+            console.log(`context`, context.states[event.serviceId].context);
+            console.groupEnd();
           },
         },
       },

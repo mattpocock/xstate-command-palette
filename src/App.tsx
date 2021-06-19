@@ -20,13 +20,15 @@ export const App = () => {
           <p>Hello</p>
           {availableCommands.map(command => {
             return (
-              <button
-                onClick={() => {
-                  service.send(command.event);
-                }}
-              >
-                {command.name}
-              </button>
+              <div>
+                <button
+                  onClick={() => {
+                    service.send(command.event);
+                  }}
+                >
+                  {command.name}
+                </button>
+              </div>
             );
           })}
         </ModalBackdrop>
